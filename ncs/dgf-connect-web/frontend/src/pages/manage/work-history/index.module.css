@@ -1,0 +1,7 @@
+.expandIcon {
+    transition: transform 0.2s;
+
+    &.rotated {
+        transform: rotate(90deg);
+    }
+}

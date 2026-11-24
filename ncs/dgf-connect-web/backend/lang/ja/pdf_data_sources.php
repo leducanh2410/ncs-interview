@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'groups' => [
+        'User' => 'ユーザー',
+        'Fixed' => '固定値',
+        'Japanese Era' => '和暦',
+        'Custom' => 'カスタム',
+    ],
+
+    'names' => [
+        'user.email' => 'メールアドレス',
+        'user.name' => '氏名',
+        'user.name_kana' => '氏名（カナ）',
+        'user.staff_no' => '社員番号',
+        'user_info.birthday' => '生年月日',
+        'user_info.phone' => '電話番号',
+        'user_info.emergency_contact_phone' => '緊急連絡先電話番号',
+        'user_info.address' => '住所',
+        'user.full_address' => '住所（全体）',
+        'user.full_address_without_postcode' => '住所（郵便番号なし）',
+        'user_info.postal_code' => '郵便番号',
+        'user_info.nationality' => '国籍',
+        'user_info.passport_number' => 'パスポート番号',
+        'user_info.passport_expiry_date' => 'パスポート有効期限',
+        'user_info.student_card_expiry_date' => '学生証有効期限',
+        'user.latest_residence_number' => '最新の在留カード番号',
+        'user.postal_code_first_3' => '郵便番号（上位 3 桁）',
+        'user.postal_code_last_4' => '郵便番号（下位 4 桁）',
+        'user_info.birth_year' => '生年',
+        'user_info.birth_month' => '誕生月',
+        'user_info.birth_date' => '誕生日',
+        'fixed_value' => '固定値',
+        'is_era_meiji' => '和暦：明治',
+        'is_era_taisho' => '和暦：大正',
+        'is_era_showa' => '和暦：昭和',
+        'is_era_heisei' => '和暦：平成',
+        'is_era_reiwa' => '和暦：令和',
+        'is_household_head' => '世帯主',
+        'current_date_ymd' => '現在日付（年/月/日）',
+    ],
+];

@@ -1,0 +1,38 @@
+services:
+  db:
+    image: ${DOCKER_DB_IMAGE:-mysql:8.0.27}
+    container_name: "stomiru-${APP_ENV}-db"
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Tokyo
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=stomiru_db
+    labels:
+      - "environment=${APP_ENV}"
+      - "project=stomiru"
+  php:
+    image: ${DOCKER_BACK_IMAGE:-registry.gitlab.com/your-org/stomiru/backend/main:latest}
+    container_name: "stomiru-${APP_ENV}-php"
+    restart: always
+    working_dir: /var/www
+    ports:
+      - "${DOCKER_PHP_PORT}:80"
+
+    environment:
+      - TZ=Asia/Tokyo
+      - DB_HOST=stomiru-${APP_ENV}-db
+      - DB_PORT=3306
+      - DB_DATABASE=stomiru_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=${DB_ROOT_PASSWORD}
+    depends_on:
+      - db
+    labels:
+      - "environment=${APP_ENV}"
+      - "project=stomiru"
+volumes:
+  mysql_data:
+    name: "stomiru-${APP_ENV}-mysql"
+    driver: local

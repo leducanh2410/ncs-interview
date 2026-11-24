@@ -1,0 +1,155 @@
+stages:
+  - check
+  - test
+  - build
+  - deploy
+
+variables:
+  TAG_LATEST_BACK: $CI_REGISTRY_IMAGE/backend/$CI_COMMIT_REF_NAME:latest
+  TAG_COMMIT_BACK: $CI_REGISTRY_IMAGE/backend/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHORT_SHA
+  GIT_DEPTH: 1
+
+.build_front_before:
+  before_script:
+    - npm i -g pnpm@10.8.0
+    - pnpm config set store-dir $CI_PROJECT_DIR/.pnpm-store
+
+build_back:
+  stage: build
+  image: docker:27.5.0
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $ENABLE_PROD_DEPLOY == "true"'
+    - if: '$CI_COMMIT_BRANCH == "staging" && $ENABLE_STG_DEPLOY == "true"'
+    - if: '$CI_COMMIT_BRANCH == "dev" && $ENABLE_DEV_DEPLOY == "true"'
+  services:
+    - docker:27.5.0-dind
+  before_script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  script:
+    - docker build --push -t $TAG_COMMIT_BACK -t $TAG_LATEST_BACK .
+
+.build_front:
+  stage: build
+  image: node:20-alpine3.21
+  cache:
+    key:
+      files:
+        - ./frontend/pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+  script:
+    - cd ./frontend
+    - pnpm install
+    - pnpm build
+  artifacts:
+    name: "$CI_JOB_NAME_$CI_COMMIT_REF_NAME"
+    paths:
+      - ./frontend/out/
+
+build_front_dev:
+  extends:
+    - .build_front
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $ENABLE_DEV_DEPLOY == "true"'
+  before_script:
+    - !reference [".build_front_before", "before_script"]
+    - cp $ENV_FRONT ./frontend/.env.local
+  environment:
+    name: dev
+
+build_front_stg:
+  extends:
+    - .build_front
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging" && $ENABLE_STG_DEPLOY == "true"'
+  before_script:
+    - !reference [".build_front_before", "before_script"]
+    - cp $ENV_FRONT ./frontend/.env.local
+  environment:
+    name: stg
+
+build_front_prod:
+  extends:
+    - .build_front
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $ENABLE_PROD_DEPLOY == "true"'
+  before_script:
+    - !reference [".build_front_before", "before_script"]
+    - cp $ENV_FRONT ./frontend/.env.local
+  environment:
+    name: prod
+
+.deploy:
+  image: alpine:3.19
+  stage: deploy
+  script:
+    - chmod 600 $SERVER_ID_RSA
+    - apk update && apk add openssh-client
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p $PROJECT_DIR && rm -rf $PROJECT_DIR/front-out"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "[ -f $PROJECT_DIR/docker-compose.yml ] && cd $PROJECT_DIR && docker compose down --remove-orphans || exit 0"
+    - scp -i $SERVER_ID_RSA -o StrictHostKeyChecking=no ./docker-compose.prod.yml $SERVER_USER@$SERVER_IP:$PROJECT_DIR/docker-compose.yml
+    - scp -i $SERVER_ID_RSA -o StrictHostKeyChecking=no -r ./scripts $SERVER_USER@$SERVER_IP:$PROJECT_DIR
+    - scp -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $ENV_DOCKER $SERVER_USER@$SERVER_IP:$PROJECT_DIR/.env
+    - scp -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $ENV_LARAVEL $SERVER_USER@$SERVER_IP:$PROJECT_DIR/app.env
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose pull"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose build"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose up -d"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker cp $PROJECT_DIR/app.env stomiru-${APP_ENV}-php:/var/www/.env"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker cp $PROJECT_DIR/scripts/is_db_ready.sh stomiru-${APP_ENV}-php:/var/www/"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec -u root stomiru-${APP_ENV}-php chown www-data:www-data /var/www/.env"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan config:cache"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan route:cache"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan view:cache"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php sh is_db_ready.sh"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan migrate --force --seed"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker exec -u root stomiru-${APP_ENV}-php supervisorctl restart all"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker image prune -f"
+    - scp -i $SERVER_ID_RSA -o StrictHostKeyChecking=no -r ./frontend/out $SERVER_USER@$SERVER_IP:$PROJECT_DIR/front-out
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S rm -rf $STATIC_DIR"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S mv $PROJECT_DIR/front-out $STATIC_DIR"
+    - ssh -i $SERVER_ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S chown -R www-data:www-data $STATIC_DIR"
+
+deploy_dev:
+  extends:
+    - .deploy
+  variables:
+    APP_ENV: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $ENABLE_DEV_DEPLOY == "true"'
+  script:
+    - !reference [ .deploy, script ]
+  environment:
+    name: dev
+    url: https://dev.stomiru.example.com
+
+deploy_stg:
+  extends:
+    - .deploy
+  variables:
+    APP_ENV: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging" && $ENABLE_STG_DEPLOY == "true"'
+  script:
+    - !reference [ .deploy, script ]
+  environment:
+    name: stg
+    url: https://stg.stomiru.example.com
+
+deploy_production:
+  extends:
+    - .deploy
+  variables:
+    APP_ENV: prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $ENABLE_PROD_DEPLOY == "true"'
+      when: manual
+  script:
+    - !reference [ .deploy, script ]
+  environment:
+    name: prod
+    url: https://app.stomiru.example.com

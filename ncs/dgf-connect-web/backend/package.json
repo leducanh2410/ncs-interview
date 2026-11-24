@@ -1,0 +1,18 @@
+{
+    "private": true,
+    "scripts": {
+        "prettier": "./node_modules/.bin/prettier --config ./package.json --ignore-path ./.prettierignore --list-different --write './**/*.php'",
+        "pint": "docker compose exec php ./vendor/bin/pint --quiet",
+        "test": "docker compose exec php ./vendor/bin/phpunit"
+    },
+    "prettier": {
+        "tabWidth": 4,
+        "singleQuote": true,
+        "printWidth": 120,
+        "plugins": ["@prettier/plugin-php"]
+    },
+    "devDependencies": {
+        "@prettier/plugin-php": "^0.22.4",
+        "prettier": "^3.5.1"
+    }
+}

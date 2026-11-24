@@ -1,0 +1,54 @@
+{
+    "GetMemberListExternal": {
+        "ResultSet": {
+            "TotalResult": "1",
+            "Result": {
+                "ExternalMemberId": {
+                    "TEST001": "EXT123456789"
+                },
+                "StaffNo": "STAFF001",
+                "LastName": "Nguyen",
+                "LastNameKana": "グエン",
+                "FirstName": "Van A",
+                "FirstNameKana": "ヴァン　アー",
+                "Sex": "2",
+                "Birthday": "1995-05-15",
+                "PcMail": "test1@example.com",
+                "Tel": "09012345678",
+                "Postcode": "1000001",
+                "PrefName": "東京都",
+                "City": "千代田区",
+                "Town": "千代田",
+                "Address": "1-1-1",
+                "Building": "Test Building 101",
+                "RegistrationBaseName": "Tokyo Office",
+                "CustomAttribute": [
+                    {
+                        "NAME": "国籍",
+                        "VALUE": "ベトナム"
+                    },
+                    {
+                        "NAME": "在留カード番号",
+                        "VALUE": "AB12345678"
+                    },
+                    {
+                        "NAME": "在留期限",
+                        "VALUE": "2027-12-31"
+                    },
+                    {
+                        "NAME": "在留資格",
+                        "VALUE": "特定活動"
+                    },
+                    {
+                        "NAME": "パスポート番号",
+                        "VALUE": "P1234567"
+                    },
+                    {
+                        "NAME": "パスポート期限",
+                        "VALUE": "2026-06-30"
+                    }
+                ]
+            }
+        }
+    }
+}

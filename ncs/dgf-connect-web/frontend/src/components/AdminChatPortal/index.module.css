@@ -1,0 +1,62 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.panelHeader,
+.windowHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.scroll {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Conversation list */
+.convItem {
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--mantine-radius-default);
+    background-color: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.convItem:hover {
+    background-color: var(--mantine-color-gray-0);
+}
+
+.convItem:focus-visible {
+    outline: 2px solid var(--mantine-color-blue-6);
+    outline-offset: -2px;
+}
+
+.convItemActive,
+.convItemActive:hover {
+    background-color: var(--mantine-color-blue-0);
+    /* Full inset ring, not a side stripe: a shape cue so "selected" survives without relying on the tint alone. */
+    box-shadow: inset 0 0 0 1px var(--mantine-color-blue-3);
+}
+
+.convBody {
+    min-width: 0;
+    flex: 1;
+}
+
+.convMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+}

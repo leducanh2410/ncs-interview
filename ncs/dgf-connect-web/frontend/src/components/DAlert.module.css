@@ -1,0 +1,30 @@
+.root {
+    &[data-type='success'] {
+        .icon {
+            color: var(--mantine-color-teal-4);
+        }
+    }
+    &[data-type='info'] {
+        .icon {
+            color: var(--mantine-color-blue-4);
+        }
+    }
+    &[data-type='warning'] {
+        .icon {
+            color: var(--mantine-color-orange-4);
+        }
+    }
+    &[data-type='danger'] {
+        .icon {
+            color: var(--mantine-color-red-4);
+        }
+    }
+}
+
+.title {
+    color: var(--mantine-color-dark-9);
+}
+
+.body {
+    gap: 4px;
+}

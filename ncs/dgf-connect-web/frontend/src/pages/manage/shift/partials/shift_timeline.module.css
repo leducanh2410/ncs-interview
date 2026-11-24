@@ -1,0 +1,60 @@
+.line {
+    width: 1px;
+    flex: 1;
+    border-left: 1px dashed var(--mantine-color-gray-4);
+    box-sizing: border-box;
+}
+
+.header th {
+    font-weight: normal;
+    padding: 0;
+
+    .weekView {
+        height: 32px;
+
+        .item {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+}
+
+.body td {
+    padding: 0;
+
+    .shifts {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        gap: 8px;
+        flex-direction: column;
+        padding: 8px 0;
+
+        .shiftRow {
+            width: 100%;
+            position: relative;
+
+            .shift {
+                position: absolute;
+                border-radius: 6px;
+                background-color: var(--mantine-color-orange-1);
+                cursor: pointer;
+
+                &.created {
+                    background-color: var(--mantine-color-teal-1);
+                }
+
+                &.disabled {
+                    cursor: not-allowed;
+                }
+            }
+        }
+    }
+}
+
+.progress {
+    background-color: var(--mantine-color-gray-4);
+}

@@ -1,0 +1,125 @@
+/* ---------------------------------------------------------------------------
+ * Super Plan — styles for the React chrome around the canvas grid.
+ * The grid itself (rows, headers, cells) is drawn by @glideapps/glide-data-grid
+ * on a canvas; these rules only cover the legend and the chips rendered inside
+ * the React cell editor.
+ * ------------------------------------------------------------------------- */
+
+/* Chips (cell-editor) — one assignment per row: hours · position, with the
+ * remove button pushed to the right edge of the row. */
+.chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 3px 4px 3px 8px;
+    border-radius: var(--mantine-radius-sm);
+    font-size: 11px;
+    line-height: 1.25;
+    max-width: 100%;
+}
+
+/* Unsaved marker — an orange dot with a white halo at the top-right corner, mirroring the
+ * grid chip. Independent of fill (source) and strikethrough (staged removal). */
+.chipUnsavedDot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f76707;
+    border: 1.5px solid var(--mantine-color-body);
+}
+
+.chipClickable {
+    cursor: pointer;
+}
+
+/* Selection ring — a body-coloured gap then a blue ring, so the highlight
+ * reads clearly on top of any chip fill (teal / blue / dashed / solid). */
+.chipSelected {
+    box-shadow:
+        0 0 0 1px var(--mantine-color-body),
+        0 0 0 3px var(--mantine-color-blue-5);
+}
+
+.chipFixed {
+    --chip-color: var(--mantine-color-teal-6);
+}
+
+.chipTemp {
+    --chip-color: var(--mantine-color-blue-6);
+}
+
+.chipFinalized {
+    background: var(--chip-color);
+    color: #fff;
+    border: 1px solid var(--chip-color);
+}
+
+.chipDraft {
+    background: var(--mantine-color-body);
+    color: var(--chip-color);
+    border: 1px dashed var(--chip-color);
+}
+
+.chipBody {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+}
+
+.chipTime {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.chipSep {
+    opacity: 0.6;
+}
+
+.chipPos {
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chipInactivePos {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* Legend */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--mantine-color-gray-7);
+}
+
+.legendSwatch {
+    width: 22px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+.regularDot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--mantine-color-teal-5);
+}

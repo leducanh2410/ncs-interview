@@ -1,0 +1,338 @@
+stages:
+  - test
+  - coverage
+  - build
+  - deploy
+
+variables:
+  TAG_LATEST_BACK: $CI_REGISTRY_IMAGE/backend/$CI_COMMIT_REF_NAME:latest
+  TAG_COMMIT_BACK: $CI_REGISTRY_IMAGE/backend/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHORT_SHA
+  GIT_DEPTH: 1
+
+# Backend: format check (Pint) + test suite in one job. Both need the same
+# `composer install`, so merging them runs that setup once instead of twice and
+# removes a second parallel job competing for the runner.
+test_backend:
+  stage: test
+  image: registry.gitlab.com/your-org/docker-images/php-dev:8.5
+  only:
+    - dev
+    - staging
+    - main
+    - merge_request
+  # DAG: start immediately instead of waiting for the whole stage.
+  needs: []
+  cache:
+    key:
+      files:
+        - ./backend/composer.lock
+        - ./backend/composer.json
+    paths:
+      - ./backend/vendor/
+  services:
+    - mysql:8.0
+  variables:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_DATABASE: dgf_connect_test
+    DB_HOST: mysql
+    DB_CONNECTION: mysql
+    # Generate coverage with PCOV instead of Xdebug — several times faster.
+    XDEBUG_MODE: "off"
+  before_script:
+    - cd ./backend
+    - composer install --no-interaction --prefer-dist --no-progress
+    # Enable PCOV for every PHP process, including the ParaTest worker subprocesses
+    # (a parent-only `-d pcov.enabled=1` would not propagate to the workers).
+    - echo "pcov.enabled=1" > /usr/local/etc/php/conf.d/zz-pcov-enable.ini
+    - echo "memory_limit=2G" > /usr/local/etc/php/conf.d/zz-memory-limit.ini
+  script:
+    # Format check first so a style failure fails fast before the longer test run.
+    - ./vendor/bin/pint --test -v
+    # Run the suite in parallel (ParaTest). Each worker gets its own database, so
+    # RefreshDatabase tests stay isolated. Coverage is collected via PCOV.
+    - php artisan test --parallel --recreate-databases --coverage-text --coverage-cobertura=coverage/cobertura.xml
+    # Rewrite paths to be repo-root relative so GitLab MR diff coverage and diff-cover can match files.
+    # PHPUnit emits filenames relative to app/ (e.g. "Models/Foo.php") with an absolute <source>.
+    - sed -i -E 's#<source>[^<]*</source>#<source>.</source>#; s#filename="#filename="backend/app/#g' coverage/cobertura.xml
+  coverage: '/^\s*Lines:\s*\d+\.\d+\%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: ./backend/coverage/cobertura.xml
+    paths:
+      - ./backend/coverage/cobertura.xml
+    expire_in: 1 week
+
+# Frontend: prettier check + Vitest suite, plus the backend PHP prettier check
+# (it is a node/npm task, not PHP, so it lives in the node job). Merging the old
+# check_prettier + test_frontend means the single slow `pnpm install` runs once
+# instead of in two parallel jobs — that duplicate install on the shared runner is
+# what intermittently hung.
+test_frontend:
+  stage: test
+  image: node:20-alpine3.21
+  only:
+    - dev
+    - staging
+    - main
+    - merge_request
+  # DAG: start immediately instead of waiting for the whole stage.
+  needs: []
+  # Fail fast instead of burning the 1h project default if a pnpm step stalls,
+  # and retry only on infra/timeout failures — never on a real check/test failure.
+  timeout: 20m
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - job_execution_timeout
+  cache:
+    # Backend prettier deps (prettier + @prettier/plugin-php).
+    - key:
+        files:
+          - ./backend/package-lock.json
+        prefix: backend-prettier
+      paths:
+        - ./backend/node_modules
+    # pnpm content-addressable store, keyed on the lockfile so it is reused across runs.
+    - key:
+        files:
+          - ./frontend/pnpm-lock.yaml
+        prefix: pnpm-store
+      paths:
+        - .pnpm-store
+  before_script:
+    - npm i -g pnpm@10.8.0
+    # Absolute path so the store resolves to the cached `.pnpm-store` regardless of
+    # the directory the install runs from. A relative `.pnpm-store` would resolve to
+    # `frontend/.pnpm-store` and never match the cache (every run re-downloads).
+    - pnpm config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
+  script:
+    # Backend PHP formatting check (prettier + @prettier/plugin-php via npm).
+    - cd ./backend && npm install --no-audit --no-fund --prefer-offline
+    - ./node_modules/.bin/prettier --config ./package.json --ignore-path ./.prettierignore --check './**/*.php'
+    # Frontend: single install (without --ignore-scripts) since the test run needs
+    # the full dependency build. Format check first so a style failure fails fast.
+    - cd ../frontend && pnpm install --frozen-lockfile --prefer-offline
+    - pnpm exec prettier --check ./src
+    - pnpm test:coverage
+    # Rewrite paths to be repo-root relative so GitLab MR diff coverage and diff-cover can match files.
+    # v8 emits filenames relative to the frontend dir (e.g. "src/Foo.tsx") with an absolute <source>.
+    - sed -i -E 's#<source>[^<]*</source>#<source>.</source>#; s#filename="#filename="frontend/#g' coverage/cobertura-coverage.xml
+  coverage: '/All files[^|]*\|[^|]*\|[^|]*\|[^|]*\|\s*([\d.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: ./frontend/coverage/cobertura-coverage.xml
+    paths:
+      - ./frontend/coverage/cobertura-coverage.xml
+    expire_in: 1 week
+
+diff_coverage:
+  stage: coverage
+  image: python:3.12-slim
+  only:
+    - merge_request
+  needs:
+    - job: test_backend
+      artifacts: true
+    - job: test_frontend
+      artifacts: true
+  variables:
+    GIT_DEPTH: 0 # full history so we can diff against the target branch
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - pip install --no-cache-dir "diff-cover~=9.0"
+    - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+  script:
+    # Frontend: logged for visibility only, never fails the job (no --fail-under).
+    - echo "===== Frontend diff coverage (informational) ====="
+    - >
+      diff-cover frontend/coverage/cobertura-coverage.xml
+      --compare-branch="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    # Backend: gates the pipeline when coverage of the lines changed in this MR is below 80%.
+    - echo "===== Backend diff coverage (gated at 80%) ====="
+    - >
+      diff-cover backend/coverage/cobertura.xml
+      --compare-branch="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+      --fail-under=80
+
+build_back:
+  stage: build
+  image: docker:27.5.0
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  only:
+    - staging
+    - dev
+  services:
+    - docker:27.5.0-dind
+  before_script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  script:
+    - docker build --pull --push -t $TAG_COMMIT_BACK -t $TAG_LATEST_BACK .
+
+
+build_back_arm:
+  extends:
+    - build_back
+  only:
+    - main
+  script:
+    - docker buildx build --pull --push --platform linux/arm64 --build-arg "BASE_IMAGE_NAME=php-laravel-nginx-arm64v8" -t $TAG_COMMIT_BACK -t $TAG_LATEST_BACK .
+
+.build_front_before:
+  before_script:
+    - npm i -g pnpm@10.8.0
+    - pnpm config set store-dir .pnpm-store
+
+.build_front:
+  stage: build
+  image: node:20-alpine3.21
+  only:
+    - main
+    - staging
+    - dev
+  cache:
+    key:
+      files:
+        - ./front/pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+  script:
+    - cd ./frontend
+    - pnpm install
+    - pnpm build
+  artifacts:
+    name: "$CI_JOB_NAME_$CI_COMMIT_REF_NAME"
+    paths:
+      - ./frontend/out/
+
+build_front_dev:
+  extends:
+    - .build_front
+  only:
+    - dev
+  before_script:
+    - !reference [".build_front_before", "before_script"]
+    - cp $ENV_FRONT ./frontend/.env.local
+  environment:
+    name: dev
+
+build_front_prod:
+  extends:
+    - .build_front
+  only:
+    - main
+  before_script:
+    - !reference [".build_front_before", "before_script"]
+    - cp $ENV_FRONT ./frontend/.env.local
+  environment:
+    name: prod
+
+.deploy_ssh:
+  image: alpine:3.19
+  stage: deploy
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - cp "$SERVER_ID_RSA" ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - |
+      cat > ~/.ssh/config <<EOF
+      Host deploy-target
+        HostName $SERVER_IP
+        User $SERVER_USER
+        IdentityFile ~/.ssh/deploy_key
+        StrictHostKeyChecking no
+      EOF
+    - chmod 600 ~/.ssh/config
+
+.deploy_backend:
+  extends:
+    - .deploy_ssh
+  script:
+    - ssh deploy-target "echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin"
+    - ssh deploy-target "mkdir -p $PROJECT_DIR"
+    - ssh deploy-target "[ -f $PROJECT_DIR/scripts/backup.sh ] && cd $PROJECT_DIR && bash ./scripts/backup.sh --env=${APP_ENV} --bucket=${AWS_S3_BUCKET_NAME_BACKUP} || exit 0"
+    - scp ./docker-compose.prod.yml deploy-target:$PROJECT_DIR/docker-compose.yml
+    - scp -r ./scripts deploy-target:$PROJECT_DIR
+    - ssh deploy-target "mkdir -p $PROJECT_DIR/docker"
+    - scp -r ./docker/mysql deploy-target:$PROJECT_DIR/docker/
+    - scp $ENV_DOCKER deploy-target:$PROJECT_DIR/.env
+    - scp $ENV_LARAVEL deploy-target:$PROJECT_DIR/app.env
+    - scp $GOOGLE_SERVICE deploy-target:$PROJECT_DIR/google-services.json
+    - scp $GOOGLE_SERVICE_ADMIN deploy-target:$PROJECT_DIR/google-services-admin.json
+    - ssh deploy-target "cd $PROJECT_DIR && docker compose pull"
+    - ssh deploy-target "cd $PROJECT_DIR && docker compose up -d --remove-orphans"
+    - ssh deploy-target "docker cp $PROJECT_DIR/app.env dgf_${APP_ENV}_php:/var/www/.env"
+    - ssh deploy-target "docker cp $PROJECT_DIR/scripts/is_db_ready.sh dgf_${APP_ENV}_php:/var/www/"
+    - ssh deploy-target "docker cp $PROJECT_DIR/google-services.json dgf_${APP_ENV}_php:/var/www/"
+    - ssh deploy-target "docker cp $PROJECT_DIR/google-services-admin.json dgf_${APP_ENV}_php:/var/www/"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php sudo chown www:www /var/www/.env"
+    # The container above is already serving the new image while the schema is still the old
+    # one. Hold traffic until `migrate` has caught up, otherwise requests hitting new code
+    # paths fail on columns that do not exist yet. Neither ordering of code-swap vs migrate is
+    # safe on its own: migrating first would instead break the old code on dropped columns.
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan down"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan config:cache"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan route:cache"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan view:cache"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php sh is_db_ready.sh"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan migrate --force --seed"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php sudo supervisorctl start all"
+    - ssh deploy-target "docker exec dgf_${APP_ENV}_php php artisan up"
+    - ssh deploy-target "docker image prune -f"
+    - ssh deploy-target "rm -rf $PROJECT_DIR/app.env $PROJECT_DIR/google-services.json $PROJECT_DIR/google-services-admin.json"
+
+.deploy_frontend:
+  extends:
+    - .deploy_ssh
+  script:
+    - ssh deploy-target "rm -rf $PROJECT_DIR/front-out"
+    - tar -C ./frontend/out -czf - . | ssh deploy-target "mkdir -p $PROJECT_DIR/front-out && tar -xzf - -C $PROJECT_DIR/front-out"
+    - ssh deploy-target "echo $SUDO_PASSWORD | sudo -S sh -c 'rm -rf ${STATIC_DIR}.previous && if [ -d $STATIC_DIR ]; then mv $STATIC_DIR ${STATIC_DIR}.previous; fi && mv $PROJECT_DIR/front-out $STATIC_DIR && chown -R www-data:www-data $STATIC_DIR && rm -rf ${STATIC_DIR}.previous'"
+
+deploy_backend_dev:
+  extends:
+    - .deploy_backend
+  only:
+    - dev
+  environment:
+    name: dev
+    url: https://dev.dgf.example.com
+
+deploy_frontend_dev:
+  extends:
+    - .deploy_frontend
+  only:
+    - dev
+  environment:
+    name: dev
+    url: https://dev.dgf.example.com
+
+deploy_backend_production:
+  extends:
+    - .deploy_backend
+  only:
+    - main
+  when: manual
+  environment:
+    name: prod
+    url: https://dgf.example.com
+
+deploy_frontend_production:
+  extends:
+    - .deploy_frontend
+  only:
+    - main
+  when: manual
+  environment:
+    name: prod
+    url: https://dgf.example.com

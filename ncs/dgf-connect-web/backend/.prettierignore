@@ -1,0 +1,13 @@
+/bootstrap/cache
+/node_modules/
+/public/
+/resources/
+/storage/
+/vendor/
+/test-reports/
+artisan
+composer.json
+composer.lock
+package.json
+docs/
+*.md

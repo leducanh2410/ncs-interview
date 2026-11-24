@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'groups' => [
+        'User' => 'User',
+        'Fixed' => 'Fixed',
+        'Japanese Era' => 'Japanese Era',
+        'Custom' => 'Custom',
+    ],
+
+    'names' => [
+        'user.email' => 'Email',
+        'user.name' => 'Full Name',
+        'user.name_kana' => 'Full Name (Kana)',
+        'user.staff_no' => 'Staff Number',
+        'user_info.birthday' => 'Birthday',
+        'user_info.phone' => 'Phone',
+        'user_info.emergency_contact_phone' => 'Emergency Contact Phone',
+        'user_info.address' => 'Address',
+        'user.full_address' => 'Full Address',
+        'user.full_address_without_postcode' => 'Full Address (Without Postcode)',
+        'user_info.postal_code' => 'Postal Code',
+        'user_info.nationality' => 'Nationality',
+        'user_info.passport_number' => 'Passport Number',
+        'user_info.passport_expiry_date' => 'Passport Expiry Date',
+        'user_info.student_card_expiry_date' => 'Student Card Expiry Date',
+        'user.latest_residence_number' => 'Latest Residence Number',
+        'user.postal_code_first_3' => 'Postal Code (First 3)',
+        'user.postal_code_last_4' => 'Postal Code (Last 4)',
+        'user_info.birth_year' => 'Birth Year',
+        'user_info.birth_month' => 'Birth Month',
+        'user_info.birth_date' => 'Birth Date',
+        'fixed_value' => 'Fixed value',
+        'is_era_meiji' => 'Era: Meiji (明治)',
+        'is_era_taisho' => 'Era: Taisho (大正)',
+        'is_era_showa' => 'Era: Showa (昭和)',
+        'is_era_heisei' => 'Era: Heisei (平成)',
+        'is_era_reiwa' => 'Era: Reiwa (令和)',
+        'is_household_head' => 'Is Household Head',
+        'current_date_ymd' => 'Current Date (Y/M/D)',
+    ],
+];

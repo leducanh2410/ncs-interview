@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'groups' => [
+        'User' => 'प्रयोगकर्ता',
+        'Fixed' => 'स्थिर',
+        'Japanese Era' => 'जापानी युग',
+        'Custom' => 'अनुकूलित',
+    ],
+
+    'names' => [
+        'user.email' => 'इमेल',
+        'user.name' => 'पूरा नाम',
+        'user.name_kana' => 'पूरा नाम (काना)',
+        'user.staff_no' => 'स्टाफ नम्बर',
+        'user_info.birthday' => 'जन्मदिन',
+        'user_info.phone' => 'फोन',
+        'user_info.emergency_contact_phone' => 'आपतकालीन सम्पर्क फोन',
+        'user_info.address' => 'ठेगाना',
+        'user.full_address' => 'पूर्ण ठेगाना',
+        'user.full_address_without_postcode' => 'पूर्ण ठेगाना (पोस्टकोड बिना)',
+        'user_info.postal_code' => 'हुलाक कोड',
+        'user_info.nationality' => 'राष्ट्रियता',
+        'user_info.passport_number' => 'राहदानी नम्बर',
+        'user_info.passport_expiry_date' => 'राहदानी म्याद सकिने मिति',
+        'user_info.student_card_expiry_date' => 'विद्यार्थी परिचयपत्र म्याद सकिने मिति',
+        'user.latest_residence_number' => 'पछिल्लो निवास नम्बर',
+        'user.postal_code_first_3' => 'हुलाक कोड (पहिलो ३)',
+        'user.postal_code_last_4' => 'हुलाक कोड (अन्तिम ४)',
+        'user_info.birth_year' => 'जन्म वर्ष',
+        'user_info.birth_month' => 'जन्म महिना',
+        'user_info.birth_date' => 'जन्म मिति',
+        'fixed_value' => 'स्थिर मान',
+        'is_era_meiji' => 'युग: मेइजी (明治)',
+        'is_era_taisho' => 'युग: ताइशो (大正)',
+        'is_era_showa' => 'युग: शोवा (昭和)',
+        'is_era_heisei' => 'युग: हेइसेइ (平成)',
+        'is_era_reiwa' => 'युग: रेइवा (令和)',
+        'is_household_head' => 'घरमूली हो',
+        'current_date_ymd' => 'हालको मिति (वर्ष/महिना/दिन)',
+    ],
+];

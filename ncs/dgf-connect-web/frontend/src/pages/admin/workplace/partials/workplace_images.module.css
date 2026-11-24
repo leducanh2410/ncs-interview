@@ -1,0 +1,26 @@
+.wrapper {
+    position: relative;
+
+    .overlay {
+        display: none;
+        background: rgba(0, 0, 0, 0.75);
+        position: absolute;
+        inset: 0;
+    }
+
+    &:hover {
+        .overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+}
+
+.icon {
+    cursor: pointer;
+    color: white;
+    &:hover {
+        color: var(--mantine-primary-color-6);
+    }
+}

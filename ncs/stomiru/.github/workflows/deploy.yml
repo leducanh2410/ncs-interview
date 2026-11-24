@@ -1,0 +1,177 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - staging
+      - main
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set_env.outputs.env_name }}
+      should_run: ${{ steps.set_env.outputs.should_run }}
+    steps:
+      - name: Determine Environment
+        id: set_env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/dev" && "${{ vars.ENABLE_DEV_DEPLOY }}" == "true" ]]; then
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" && "${{ vars.ENABLE_STG_DEPLOY }}" == "true" ]]; then
+            echo "env_name=stg" >> $GITHUB_OUTPUT
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" && "${{ vars.ENABLE_PROD_DEPLOY }}" == "true" ]]; then
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-back:
+    needs: setup
+    if: needs.setup.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.env_name }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=${{ github.ref_name }}-${{ github.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-front:
+    needs: setup
+    if: needs.setup.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.env_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+
+      - name: Set env file
+        run: echo "${{ secrets.ENV_FRONT }}" > ./frontend/.env.local
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install
+
+      - name: Build
+        working-directory: ./frontend
+        run: pnpm build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./frontend/out/
+
+  deploy:
+    needs: [setup, build-back, build-front]
+    if: needs.setup.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.env_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./frontend/out
+
+      - name: Prepare secrets and keys
+        run: |
+          echo "${{ secrets.SERVER_ID_RSA }}" > id_rsa
+          chmod 600 id_rsa
+          echo "${{ secrets.ENV_DOCKER }}" > .env.docker
+          echo "${{ secrets.ENV_LARAVEL }}" > app.env
+          
+      - name: Execute remote commands over SSH
+        env:
+          SERVER_USER: ${{ vars.SERVER_USER }}
+          SERVER_IP: ${{ vars.SERVER_IP }}
+          APP_ENV: ${{ needs.setup.outputs.env_name }}
+          PROJECT_DIR: ${{ vars.PROJECT_DIR }}
+          STATIC_DIR: ${{ vars.STATIC_DIR }}
+          SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          cp id_rsa ~/.ssh/id_rsa
+          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+
+          # Login to GHCR on remote server
+          ssh $SERVER_USER@$SERVER_IP "echo $GH_TOKEN | docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+          
+          # Prepare directories and clear old build
+          ssh $SERVER_USER@$SERVER_IP "mkdir -p $PROJECT_DIR && rm -rf $PROJECT_DIR/front-out"
+          ssh $SERVER_USER@$SERVER_IP "[ -f $PROJECT_DIR/docker-compose.yml ] && cd $PROJECT_DIR && docker compose down --remove-orphans || exit 0"
+          
+          # Copy files
+          scp ./docker-compose.prod.yml $SERVER_USER@$SERVER_IP:$PROJECT_DIR/docker-compose.yml
+          scp -r ./scripts $SERVER_USER@$SERVER_IP:$PROJECT_DIR
+          scp .env.docker $SERVER_USER@$SERVER_IP:$PROJECT_DIR/.env
+          scp app.env $SERVER_USER@$SERVER_IP:$PROJECT_DIR/app.env
+          scp -r ./frontend/out $SERVER_USER@$SERVER_IP:$PROJECT_DIR/front-out
+
+          # Docker up
+          ssh $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose pull"
+          ssh $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose build"
+          ssh $SERVER_USER@$SERVER_IP "cd $PROJECT_DIR && docker compose up -d"
+          
+          # Container config and artisan commands
+          ssh $SERVER_USER@$SERVER_IP "docker cp $PROJECT_DIR/app.env stomiru-${APP_ENV}-php:/var/www/.env"
+          ssh $SERVER_USER@$SERVER_IP "docker cp $PROJECT_DIR/scripts/is_db_ready.sh stomiru-${APP_ENV}-php:/var/www/"
+          ssh $SERVER_USER@$SERVER_IP "docker exec -u root stomiru-${APP_ENV}-php chown www-data:www-data /var/www/.env"
+          ssh $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan config:cache"
+          ssh $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan route:cache"
+          ssh $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan view:cache"
+          ssh $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php sh is_db_ready.sh"
+          ssh $SERVER_USER@$SERVER_IP "docker exec stomiru-${APP_ENV}-php php artisan migrate --force --seed"
+          ssh $SERVER_USER@$SERVER_IP "docker exec -u root stomiru-${APP_ENV}-php supervisorctl restart all"
+          ssh $SERVER_USER@$SERVER_IP "docker image prune -f"
+          
+          # Static frontend deploy
+          ssh $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S rm -rf $STATIC_DIR"
+          ssh $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S mv $PROJECT_DIR/front-out $STATIC_DIR"
+          ssh $SERVER_USER@$SERVER_IP "echo $SUDO_PASSWORD | sudo -S chown -R www-data:www-data $STATIC_DIR"

@@ -1,0 +1,47 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 244px = AppShell header (48) + AppShell padding (16) + breadcrumbs (30) + title with margins (80) + tabs list (54) + bottom padding (16) */
+    height: calc(100dvh - 244px);
+}
+
+.scrollContent {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.tab {
+    position: relative;
+    border: 1px solid var(--mantine-color-gray-2);
+    background-color: var(--mantine-color-white);
+    margin-bottom: 16px;
+
+    &:first-of-type {
+        border-radius: 4px 0 0 4px;
+    }
+
+    &:last-of-type {
+        border-radius: 0 4px 4px 0;
+    }
+
+    & + & {
+        border-left-width: 0;
+    }
+
+    &:hover {
+        background-color: var(--mantine-color-gray-0);
+    }
+
+    &[data-active] {
+        z-index: 1;
+        background-color: var(--mantine-color-blue-filled);
+        border-color: var(--mantine-color-blue-filled);
+        color: var(--mantine-color-white);
+
+        &:hover {
+            background-color: var(--mantine-color-blue-filled-hover);
+        }
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "GetMemberListExternal": {
+        "ResultSet": {
+            "Error": {
+                "errorCd": "E001",
+                "mes": "Authentication failed"
+            }
+        }
+    }
+}

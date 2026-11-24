@@ -1,0 +1,93 @@
+.header {
+    border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.navbar {
+    border-right: 1px solid var(--mantine-color-gray-2);
+    .icon {
+        fill: var(--mantine-primary-color-filled);
+        cursor: pointer;
+    }
+}
+
+.navbar .sidebarItem {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 16px;
+    gap: 12px;
+    border-radius: 6px;
+    background-color: var(--mantine-color-white);
+    color: var(--mantine-color-dark-4);
+    font-weight: 500;
+    transition: ease all 300ms;
+}
+
+.navbar .sidebarItem:hover {
+    background-color: var(--mantine-color-blue-0);
+}
+
+.navbar .sidebarItem.active {
+    background-color: var(--mantine-color-blue-6);
+    color: var(--mantine-color-white);
+}
+
+.navbar .sidebarGroup {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 16px;
+    gap: 12px;
+    border-radius: 6px;
+    background-color: var(--mantine-color-white);
+    color: var(--mantine-color-dark-4);
+    font-weight: 500;
+    font-size: var(--mantine-font-size-sm);
+    font-family: inherit;
+    transition: ease all 300ms;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.navbar .sidebarGroup:hover {
+    background-color: var(--mantine-color-blue-0);
+}
+
+.navbar .sidebarGroup.activeGroup {
+    color: var(--mantine-color-blue-6);
+}
+
+.navbar .sidebarItemCollapsed {
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+}
+
+.navbar .sidebarGroupCollapsed {
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+}
+
+.collapseToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    border: none;
+    border-top: 1px solid var(--mantine-color-gray-2);
+    background: transparent;
+    color: var(--mantine-color-dark-4);
+    cursor: pointer;
+    margin-top: 8px;
+    padding: 0;
+    transition: ease color 200ms;
+}
+
+.collapseToggle:hover {
+    color: var(--mantine-color-blue-6);
+}

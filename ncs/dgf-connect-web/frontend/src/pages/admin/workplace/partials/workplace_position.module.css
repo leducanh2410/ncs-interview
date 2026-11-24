@@ -1,0 +1,10 @@
+.header th {
+    font-weight: 500;
+    background-color: var(--mantine-color-gray-1);
+    height: 40px;
+}
+
+.draggableRow[data-is-dragging='true'] td {
+    opacity: 0.75;
+    border: 1px solid var(--table-border-color);
+}

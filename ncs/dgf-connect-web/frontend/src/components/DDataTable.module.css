@@ -1,0 +1,18 @@
+.header th {
+    font-weight: 500;
+    background-color: var(--mantine-color-gray-1);
+    height: 40px;
+}
+
+/* Opt-in via ColumnDefinition.titleClassName: the library truncates header text with
+   an inner nowrap/ellipsis div, so overriding white-space on the <th> itself has no
+   effect. Needed for narrow columns whose header label is longer than their content. */
+.headerWrap :global(.mantine-datatable-header-cell-sortable-text) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+}
+
+.table td[data-pinned] {
+    background-color: var(--mantine-color-body);
+}

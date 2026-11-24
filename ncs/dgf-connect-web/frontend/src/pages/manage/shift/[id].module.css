@@ -1,0 +1,14 @@
+.actionBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: transparent;
+}
+
+.tempRow {
+    background-color: var(--mantine-color-blue-0);
+}
+
+.errorRow {
+    background-color: var(--mantine-color-red-0);
+}

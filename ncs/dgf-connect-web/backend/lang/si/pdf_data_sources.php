@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'groups' => [
+        'User' => 'පරිශීලක',
+        'Fixed' => 'ස්ථාවර',
+        'Japanese Era' => 'ජපන් යුගය',
+        'Custom' => 'අභිරුචි',
+    ],
+
+    'names' => [
+        'user.email' => 'විද්‍යුත් තැපෑල',
+        'user.name' => 'සම්පූර්ණ නම',
+        'user.name_kana' => 'සම්පූර්ණ නම (කානා)',
+        'user.staff_no' => 'කාර්ය මණ්ඩල අංකය',
+        'user_info.birthday' => 'උපන් දිනය',
+        'user_info.phone' => 'දුරකථනය',
+        'user_info.emergency_contact_phone' => 'හදිසි සම්බන්ධතා දුරකථනය',
+        'user_info.address' => 'ලිපිනය',
+        'user.full_address' => 'සම්පූර්ණ ලිපිනය',
+        'user.full_address_without_postcode' => 'සම්පූර්ණ ලිපිනය (තැපැල් කේතය රහිත)',
+        'user_info.postal_code' => 'තැපැල් කේතය',
+        'user_info.nationality' => 'ජාතිකත්වය',
+        'user_info.passport_number' => 'විදේශ ගමන් බලපත්‍ර අංකය',
+        'user_info.passport_expiry_date' => 'විදේශ ගමන් බලපත්‍රය කල් ඉකුත් වන දිනය',
+        'user_info.student_card_expiry_date' => 'ශිෂ්‍ය හැඳුනුම්පත කල් ඉකුත් වන දිනය',
+        'user.latest_residence_number' => 'නවතම පදිංචි අංකය',
+        'user.postal_code_first_3' => 'තැපැල් කේතය (පළමු 3)',
+        'user.postal_code_last_4' => 'තැපැල් කේතය (අවසන් 4)',
+        'user_info.birth_year' => 'උපන් වර්ෂය',
+        'user_info.birth_month' => 'උපන් මාසය',
+        'user_info.birth_date' => 'උපන් දිනය',
+        'fixed_value' => 'ස්ථාවර අගය',
+        'is_era_meiji' => 'යුගය: මෙයිජි (明治)',
+        'is_era_taisho' => 'යුගය: තයිෂෝ (大正)',
+        'is_era_showa' => 'යුගය: ෂෝවා (昭和)',
+        'is_era_heisei' => 'යුගය: හෙයිසේයි (平成)',
+        'is_era_reiwa' => 'යුගය: රෙයිවා (令和)',
+        'is_household_head' => 'ගෘහ මූලිකයා දැයි',
+        'current_date_ymd' => 'වත්මන් දිනය (අ/මා/දි)',
+    ],
+];

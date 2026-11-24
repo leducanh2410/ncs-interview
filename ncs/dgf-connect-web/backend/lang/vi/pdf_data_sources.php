@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'groups' => [
+        'User' => 'Người dùng',
+        'Fixed' => 'Cố định',
+        'Japanese Era' => 'Niên hiệu Nhật Bản',
+        'Custom' => 'Tùy chỉnh',
+    ],
+
+    'names' => [
+        'user.email' => 'Email',
+        'user.name' => 'Họ tên',
+        'user.name_kana' => 'Họ tên (Kana)',
+        'user.staff_no' => 'Mã nhân viên',
+        'user_info.birthday' => 'Ngày sinh',
+        'user_info.phone' => 'Số điện thoại',
+        'user_info.emergency_contact_phone' => 'Số điện thoại liên hệ khẩn cấp',
+        'user_info.address' => 'Địa chỉ',
+        'user.full_address' => 'Địa chỉ đầy đủ',
+        'user.full_address_without_postcode' => 'Địa chỉ (không có mã bưu điện)',
+        'user_info.postal_code' => 'Mã bưu điện',
+        'user_info.nationality' => 'Quốc tịch',
+        'user_info.passport_number' => 'Số hộ chiếu',
+        'user_info.passport_expiry_date' => 'Ngày hết hạn hộ chiếu',
+        'user_info.student_card_expiry_date' => 'Ngày hết hạn thẻ sinh viên',
+        'user.latest_residence_number' => 'Số thẻ cư trú mới nhất',
+        'user.postal_code_first_3' => 'Mã bưu điện (3 số đầu)',
+        'user.postal_code_last_4' => 'Mã bưu điện (4 số cuối)',
+        'user_info.birth_year' => 'Năm sinh',
+        'user_info.birth_month' => 'Tháng sinh',
+        'user_info.birth_date' => 'Ngày sinh',
+        'fixed_value' => 'Giá trị cố định',
+        'is_era_meiji' => 'Niên hiệu: Meiji (明治)',
+        'is_era_taisho' => 'Niên hiệu: Taisho (大正)',
+        'is_era_showa' => 'Niên hiệu: Showa (昭和)',
+        'is_era_heisei' => 'Niên hiệu: Heisei (平成)',
+        'is_era_reiwa' => 'Niên hiệu: Reiwa (令和)',
+        'is_household_head' => 'Chủ hộ',
+        'current_date_ymd' => 'Ngày hiện tại (N/T/N)',
+    ],
+];

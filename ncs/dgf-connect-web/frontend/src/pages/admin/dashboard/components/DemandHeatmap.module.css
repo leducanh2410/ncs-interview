@@ -1,0 +1,59 @@
+.heatmapGrid {
+    display: grid;
+    gap: 4px;
+    align-items: center;
+}
+
+.cell {
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mantine-color-gray-9);
+}
+
+.cellNull {
+    background-color: var(--mantine-color-gray-1);
+    color: var(--mantine-color-gray-5);
+}
+
+.h1 {
+    background-color: var(--mantine-color-blue-0);
+    color: var(--mantine-color-blue-9);
+}
+.h2 {
+    background-color: var(--mantine-color-blue-1);
+    color: var(--mantine-color-blue-9);
+}
+.h3 {
+    background-color: var(--mantine-color-blue-3);
+    color: var(--mantine-color-blue-9);
+}
+.h4 {
+    background-color: var(--mantine-color-blue-5);
+    color: white;
+}
+.h5 {
+    background-color: var(--mantine-color-blue-7);
+    color: white;
+}
+.h6 {
+    background-color: var(--mantine-color-blue-9);
+    color: white;
+}
+
+.axisLabel {
+    font-size: 11px;
+    color: var(--mantine-color-gray-6);
+    text-align: center;
+}
+
+.rowLabel {
+    font-size: 12px;
+    color: var(--mantine-color-gray-7);
+    padding-right: 8px;
+    white-space: nowrap;
+}

@@ -1,0 +1,6 @@
+.idea/
+design.pen
+.claude/settings.local.json
+.claude/
+.agents/skills/*
+!.agents/skills/app-shot
